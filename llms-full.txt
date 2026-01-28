@@ -1,0 +1,43 @@
+fallback-chain-js — LLM-friendly reference
+
+API:
+- fallback(candidates, options?) -> Promise<T>
+
+Candidates:
+- () => T | Promise<T>
+- { name?: string, run: (ctx) => T | Promise<T> }
+
+AttemptContext passed to each candidate:
+- attempt: number
+- signal: AbortSignal
+- errors: readonly unknown[] (previous attempt errors)
+
+Options:
+- signal?: AbortSignal (aborts the whole chain)
+- timeoutMs?: number | (ctx) => number | undefined  (per attempt)
+- accept?: (value, { attempt }) => boolean
+- retryable?: (error, { attempt }) => boolean
+- onAttempt?: ({ attempt, name, outcome, durationMs, value?, error? }) => void
+
+Outcomes:
+- "success": returned accepted value
+- "unacceptable": value resolved but accept() returned false => try next
+- "rejected": candidate threw/rejected => try next (unless retryable says stop)
+- "timeout": timed out => try next
+- "aborted": stop immediately and throw
+
+Examples:
+1) Basic:
+  await fallback([() => primary(), () => secondary()])
+
+2) HTTP fallback on status:
+  await fallback(
+    [() => fetch(urlA), () => fetch(urlB)],
+    { accept: (r) => r.ok }
+  )
+
+3) LLM/provider fallback (generic):
+  await fallback(
+    [() => callModel("primary"), () => callModel("backup")],
+    { accept: (txt) => typeof txt === "string" && txt.trim().length > 0 }
+  )

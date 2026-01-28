@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "fallback-chain-js-tests",
+  "main": "test/worker.js",
+  "compatibility_date": "2025-01-01"
+}
