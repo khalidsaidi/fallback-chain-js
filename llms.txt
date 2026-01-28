@@ -1,17 +1,15 @@
-# fallback-chain-js
+# fallback-chain-js monorepo
 
-Tiny fallback chains for JS/TS — try providers until one succeeds.
+Tiny fallback chains for JS/TS plus a demo app (Fallback Lab).
 
 ## Start here
-- README.md: overview + quickstart + recipes
-- llms-full.txt: full API + semantics + examples for LLMs/tools
-- src/index.ts: implementation (tiny core)
-- test/spec.js: behavioral spec used across Node/Bun/Workers
+- packages/fallback-chain-js/README.md: library overview + API
+- packages/fallback-chain-js/src/index.ts: implementation (tiny core)
+- packages/fallback-chain-js/test/spec.js: behavioral spec
+- apps/fallbacklab/README.md: demo app overview
+- apps/fallbacklab/public/llms.txt: /api/run usage for tools
+- apps/fallbacklab/openapi.json: OpenAPI 3.0 for /api/run and /api/runs/{id}
 
-## Concepts
-- Candidates are lazy functions. We only call the next one if needed.
-- Fallback can be triggered by:
-  - a rejection/throw
-  - or an “unacceptable” resolved value via options.accept(...)
-- AbortSignal stops the entire chain.
-- timeoutMs enforces per-attempt timeout via Promise.race (even if candidate ignores AbortSignal).
+## Repo map
+- packages/fallback-chain-js: dependency-free fallback chain primitive
+- apps/fallbacklab: Next.js demo with Firebase Auth/Firestore + Vertex AI

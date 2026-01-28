@@ -1,3 +1,8 @@
 .ai/
-dist/
+.vercel/
 node_modules/
+dist/
+apps/**/.env*
+packages/**/.env*
+.vercel
+.env*.local
