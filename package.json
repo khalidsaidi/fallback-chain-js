@@ -46,7 +46,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/khalidsaidi/fallback-chain-js.git"
+    "url": "git+https://github.com/khalidsaidi/fallback-chain-js.git"
   },
   "bugs": {
     "url": "https://github.com/khalidsaidi/fallback-chain-js/issues"
