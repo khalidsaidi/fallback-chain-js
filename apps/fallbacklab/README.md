@@ -17,6 +17,7 @@ pnpm -C apps/fallbacklab dev
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_GA_ID` (Google Analytics Measurement ID)
 
 ## API
 - `POST /api/run` — run the fallback chain and return attempts
