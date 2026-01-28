@@ -1,0 +1,17 @@
+# fallback-chain-js
+
+Tiny fallback chains for JS/TS — try providers until one succeeds.
+
+## Start here
+- README.md: overview + quickstart + recipes
+- llms-full.txt: full API + semantics + examples for LLMs/tools
+- src/index.ts: implementation (tiny core)
+- test/spec.js: behavioral spec used across Node/Bun/Workers
+
+## Concepts
+- Candidates are lazy functions. We only call the next one if needed.
+- Fallback can be triggered by:
+  - a rejection/throw
+  - or an “unacceptable” resolved value via options.accept(...)
+- AbortSignal stops the entire chain.
+- timeoutMs enforces per-attempt timeout via Promise.race (even if candidate ignores AbortSignal).

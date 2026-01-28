@@ -1,0 +1,109 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Fallback Lab API",
+    "version": "0.1.0",
+    "description": "Fallback Lab demo API for the fallback-chain-js monorepo."
+  },
+  "paths": {
+    "/api/run": {
+      "post": {
+        "summary": "Run a fallback chain",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string" },
+                  "question": { "type": "string" },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "timeoutMs": { "type": "number" }
+                    }
+                  },
+                  "demo": { "type": "boolean" }
+                },
+                "required": ["url", "question"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Run response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "runId": { "type": ["string", "null"] },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "text": { "type": "string" },
+                        "source": { "type": "string" },
+                        "attempts": { "$ref": "#/components/schemas/AttemptList" }
+                      }
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "answer": { "type": "string" },
+                        "provider": { "type": "string" },
+                        "bullets": { "type": "array", "items": { "type": "string" } },
+                        "attempts": { "$ref": "#/components/schemas/AttemptList" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}": {
+      "get": {
+        "summary": "Fetch a stored run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Run document" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AttemptList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "attempt": { "type": "number" },
+            "name": { "type": "string" },
+            "outcome": {
+              "type": "string",
+              "enum": ["success", "rejected", "unacceptable", "timeout", "aborted"]
+            },
+            "durationMs": { "type": "number" },
+            "error": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

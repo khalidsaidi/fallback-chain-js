@@ -1,0 +1,42 @@
+# Fallback Lab API
+
+## Endpoint: POST /api/run
+Runs a two-stage fallback chain:
+1) Fetch page text (Firestore cache -> direct fetch -> mirror)
+2) Summarize with Vertex AI Gemini (or deterministic fallback)
+
+### Auth
+- Optional: `Authorization: Bearer <Firebase ID token>`
+- If `demo: true`, auth is skipped and runs are not stored.
+
+### Example request
+```json
+{
+  "url": "https://example.com",
+  "question": "What is this page about?",
+  "options": { "timeoutMs": 8000 },
+  "demo": true
+}
+```
+
+### Example response (shape)
+```json
+{
+  "ok": true,
+  "runId": "optional-firestore-doc-id",
+  "page": {
+    "text": "...",
+    "source": "cache|fetch|mirror",
+    "attempts": [
+      { "attempt": 0, "name": "firestore-cache", "outcome": "rejected", "durationMs": 5 }
+    ]
+  },
+  "summary": {
+    "answer": "...",
+    "provider": "vertex-gemini-2.5-flash|deterministic",
+    "attempts": [
+      { "attempt": 0, "name": "vertex-gemini", "outcome": "success", "durationMs": 420 }
+    ]
+  }
+}
+```

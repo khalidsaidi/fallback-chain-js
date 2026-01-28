@@ -1,61 +1,15 @@
 {
-  "name": "fallback-chain-js",
-  "version": "0.1.0",
-  "description": "Tiny fallback chains for JS/TS — try providers until one succeeds.",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "llms.txt",
-    "llms-full.txt"
+  "name": "fallback-chain-js-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.12.3",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "build": "tsup",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:node": "npm run build && node --test",
-    "test:bun": "npm run build && bun test",
-    "test:workers": "npm run build && vitest run --config vitest.config.ts",
-    "test": "npm run test:node && npm run test:workers",
-    "prepublishOnly": "npm run build && npm run typecheck && npm test"
-  },
-  "keywords": [
-    "fallback",
-    "failover",
-    "resilience",
-    "control-flow",
-    "abortsignal",
-    "timeout",
-    "workers",
-    "bun",
-    "typescript",
-    "llm",
-    "ai"
-  ],
-  "license": "MIT",
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/khalidsaidi/fallback-chain-js.git"
-  },
-  "bugs": {
-    "url": "https://github.com/khalidsaidi/fallback-chain-js/issues"
-  },
-  "homepage": "https://github.com/khalidsaidi/fallback-chain-js#readme",
-  "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.7",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "vitest": "~3.2.0"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
   }
 }

@@ -1,0 +1,5 @@
+{
+  "installCommand": "corepack enable && cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm -C apps/fallbacklab build",
+  "framework": "nextjs"
+}
