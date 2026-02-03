@@ -13,6 +13,9 @@ importers:
       '@google/genai':
         specifier: ^1.38.0
         version: 1.38.0
+      '@khalidsaidi/fallback-chain-js':
+        specifier: workspace:^
+        version: link:../../packages/fallback-chain-js
       '@radix-ui/react-scroll-area':
         specifier: ^1.2.10
         version: 1.2.10(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -31,9 +34,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      fallback-chain-js:
-        specifier: workspace:^
-        version: link:../../packages/fallback-chain-js
       firebase:
         specifier: ^12.8.0
         version: 12.8.0

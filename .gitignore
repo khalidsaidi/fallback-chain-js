@@ -6,3 +6,4 @@ apps/**/.env*
 packages/**/.env*
 .vercel
 .env*.local
+.cursor/

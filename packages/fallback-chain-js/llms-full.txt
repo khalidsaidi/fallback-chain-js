@@ -1,4 +1,4 @@
-fallback-chain-js — LLM-friendly reference
+@khalidsaidi/fallback-chain-js — LLM-friendly reference
 
 API:
 - fallback(candidates, options?) -> Promise<T>

@@ -13,7 +13,7 @@ export default function Home() {
               Try providers until one works.
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground">
-              A visual playground for the tiny fallback-chain-js library.
+              A visual playground for the tiny @khalidsaidi/fallback-chain-js library.
               Fetch a page, summarize it with Vertex AI, and inspect every
               attempt in the chain.
             </p>

@@ -1,6 +1,7 @@
 # fallback-chain-js monorepo
 
 Tiny fallback chains for JS/TS plus a demo app (Fallback Lab).
+Package name: @khalidsaidi/fallback-chain-js
 
 ## Start here
 - packages/fallback-chain-js/README.md: library overview + API

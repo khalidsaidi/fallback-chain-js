@@ -2,10 +2,10 @@
 Tiny fallback chains for JS/TS — try providers until one succeeds.
 
 [![CI](https://github.com/khalidsaidi/fallback-chain-js/actions/workflows/ci.yml/badge.svg)](https://github.com/khalidsaidi/fallback-chain-js/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/fallback-chain-js)](https://www.npmjs.com/package/fallback-chain-js)
-[![types](https://img.shields.io/npm/types/fallback-chain-js)](https://www.npmjs.com/package/fallback-chain-js)
+[![npm](https://img.shields.io/npm/v/@khalidsaidi/fallback-chain-js)](https://www.npmjs.com/package/@khalidsaidi/fallback-chain-js)
+[![types](https://img.shields.io/npm/types/@khalidsaidi/fallback-chain-js)](https://www.npmjs.com/package/@khalidsaidi/fallback-chain-js)
 [![license](https://img.shields.io/github/license/khalidsaidi/fallback-chain-js)](https://github.com/khalidsaidi/fallback-chain-js/blob/main/LICENSE)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/fallback-chain-js)](https://bundlephobia.com/package/fallback-chain-js)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@khalidsaidi/fallback-chain-js)](https://bundlephobia.com/package/@khalidsaidi/fallback-chain-js)
 
 - ✅ Tiny core, zero runtime deps
 - ✅ Works in Node, Bun, and Cloudflare Workers
@@ -17,7 +17,7 @@ Demo app: https://fallbacklab.vercel.app
 
 ## Quickstart (30s)
 ```ts
-import { fallback } from "fallback-chain-js";
+import { fallback } from "@khalidsaidi/fallback-chain-js";
 
 const result = await fallback([
   () => fetch("https://primary.example.com").then((r) => r.text()),
@@ -32,10 +32,10 @@ const result = await fallback([
 
 ## Install
 ```bash
-npm i fallback-chain-js
-pnpm add fallback-chain-js
-yarn add fallback-chain-js
-bun add fallback-chain-js
+npm i @khalidsaidi/fallback-chain-js
+pnpm add @khalidsaidi/fallback-chain-js
+yarn add @khalidsaidi/fallback-chain-js
+bun add @khalidsaidi/fallback-chain-js
 ```
 
 ## Usage

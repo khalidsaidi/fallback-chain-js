@@ -1,6 +1,6 @@
 # Fallback Lab
 
-Demo app for **fallback-chain-js**. Built with Next.js + shadcn/ui + Tailwind, plus Firebase Auth/Firestore and Vertex AI (Gemini).
+Demo app for **@khalidsaidi/fallback-chain-js**. Built with Next.js + shadcn/ui + Tailwind, plus Firebase Auth/Firestore and Vertex AI (Gemini).
 
 ## Local dev
 ```bash

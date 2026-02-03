@@ -13,7 +13,7 @@ pnpm -C packages/fallback-chain-js build
 ```
 
 ```ts
-import { fallback } from "fallback-chain-js";
+import { fallback } from "@khalidsaidi/fallback-chain-js";
 
 const result = await fallback([
   () => primary(),

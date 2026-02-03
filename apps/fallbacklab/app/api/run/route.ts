@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { fallback, type Candidate } from "fallback-chain-js";
+import { fallback, type Candidate } from "@khalidsaidi/fallback-chain-js";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/server/firebase-admin";
 import { getGenAI } from "@/lib/server/genai";

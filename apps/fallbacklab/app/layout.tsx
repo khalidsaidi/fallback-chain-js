@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Fallback Lab",
-  description: "Demo app for fallback-chain-js with Firebase + Vertex AI"
+  description: "Demo app for @khalidsaidi/fallback-chain-js with Firebase + Vertex AI"
 };
 
 export default function RootLayout({
