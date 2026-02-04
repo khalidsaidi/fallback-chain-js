@@ -1,4 +1,10 @@
-import { fallback } from "../dist/index.js";
+import {
+  fallback,
+  acceptOk,
+  acceptTruthy,
+  acceptDefined,
+  acceptStatus,
+} from "../dist/index.js";
 
 export async function runSpec(assert, makeSleep) {
   // 1) first success wins
@@ -55,5 +61,41 @@ export async function runSpec(assert, makeSleep) {
         { retryable: (e) => !(e && typeof e === "object" && "code" in e && e.code === "NO_FALLBACK") }
       )
     );
+  }
+
+  // 6) acceptOk helper
+  {
+    const out = await fallback(
+      [() => ({ ok: false, status: 500 }), () => ({ ok: true, status: 200 })],
+      { accept: acceptOk }
+    );
+    assert.equal(out.ok, true);
+  }
+
+  // 7) acceptStatus helper
+  {
+    const out = await fallback(
+      [() => ({ ok: false, status: 500 }), () => ({ ok: true, status: 200 })],
+      { accept: acceptStatus(200, 201) }
+    );
+    assert.equal(out.status, 200);
+  }
+
+  // 8) acceptTruthy helper
+  {
+    const out = await fallback(
+      [() => null, () => 0, () => "truthy"],
+      { accept: acceptTruthy }
+    );
+    assert.equal(out, "truthy");
+  }
+
+  // 9) acceptDefined helper
+  {
+    const out = await fallback(
+      [() => null, () => undefined, () => 0],
+      { accept: acceptDefined }
+    );
+    assert.equal(out, 0);
   }
 }

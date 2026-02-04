@@ -1,6 +1,6 @@
 {
   "name": "@khalidsaidi/fallback-chain-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tiny fallback chains for JS/TS — try providers until one succeeds.",
   "type": "module",
   "exports": {

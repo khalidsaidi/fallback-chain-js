@@ -84,6 +84,27 @@ function getTimeoutMs<T>(
   return timeoutMs;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Accept Helpers
+// ─────────────────────────────────────────────────────────────
+
+/** Accept if Response.ok is true */
+export const acceptOk = (res: { ok: boolean }) => res.ok;
+
+/** Accept if Response.status is one of the given codes */
+export const acceptStatus = (...codes: number[]) =>
+  (res: { status: number }) => codes.includes(res.status);
+
+/** Accept if value is truthy */
+export const acceptTruthy = <T>(v: T) => Boolean(v);
+
+/** Accept if value is not null/undefined */
+export const acceptDefined = <T>(v: T) => v !== null && v !== undefined;
+
+// ─────────────────────────────────────────────────────────────
+// Core fallback function
+// ─────────────────────────────────────────────────────────────
+
 export async function fallback<T>(
   candidates: readonly Candidate<T>[],
   options: FallbackOptions<T> = {}
