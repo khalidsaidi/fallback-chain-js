@@ -2,6 +2,8 @@
 
 API:
 - fallback(candidates, options?) -> Promise<T>
+- createFallbackChain(candidates, options?) -> { run(overrides?), health(), reset() }
+- fallbackStream(candidates, options?) -> AsyncGenerator<T>
 
 Candidates:
 - () => T | Promise<T>
@@ -36,8 +38,32 @@ Examples:
     { accept: (r) => r.ok }
   )
 
-3) LLM/provider fallback (generic):
+3) LLM/provider fallback (generic; normalize each provider to one shape):
   await fallback(
     [() => callModel("primary"), () => callModel("backup")],
     { accept: (txt) => typeof txt === "string" && txt.trim().length > 0 }
   )
+
+createFallbackChain (stateful cooldown/health):
+- Extra options over fallback(): cooldownMs (default 30000), failureThreshold (default 1), now (injectable clock).
+- run(overrides?) merges per-call options (e.g. a request AbortSignal) over the base options.
+- Ordering per run: healthy candidates first (original order), cooling-down candidates deprioritized to the end (never skipped outright).
+- Failures that count: rejected / timeout / unacceptable. Caller aborts do NOT count.
+- Success resets that candidate's failure memory. health() returns { index, name?, consecutiveFailures, coolingDown, cooldownUntil, lastError? }[].
+
+  const chain = createFallbackChain([primary, backup], { cooldownMs: 30_000 });
+  const value = await chain.run();
+
+fallbackStream (streaming fallback):
+- Candidate: (ctx) => AsyncIterable<T> | AsyncIterator<T> | Iterable<T> (or { name?, run }).
+- Falls back on error/timeout/acceptFirstChunk-veto only BEFORE the first chunk is yielded to the consumer.
+- After the first chunk: COMMITTED — errors propagate as-is (mid-stream fallback is unsolvable UX; never spliced).
+- timeoutMs is the per-attempt budget to the FIRST chunk only.
+- acceptFirstChunk(chunk, { attempt }) vetoes a candidate before committing.
+- Abandoned candidates: iterator.return() called best-effort; late chunks are dropped, never leaked to the consumer.
+- Consumer break/return()/throw() propagates cleanup to the committed inner iterator.
+- Clean zero-chunk completion completes the output stream (not an error).
+
+  for await (const token of fallbackStream([primaryStream, backupStream], { timeoutMs: 3000 })) {
+    render(token);
+  }

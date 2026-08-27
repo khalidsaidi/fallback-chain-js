@@ -18,6 +18,37 @@ export default function Home() {
               attempt in the chain.
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="https://www.npmjs.com/package/@khalidsaidi/fallback-chain-js"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-white"
+            >
+              npm · @khalidsaidi/fallback-chain-js
+            </a>
+            <a
+              href="https://github.com/khalidsaidi/fallback-chain-js"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-white"
+            >
+              GitHub · khalidsaidi/fallback-chain-js
+            </a>
+          </div>
+          <div className="max-w-2xl overflow-x-auto rounded-2xl border border-border/60 bg-slate-950 p-5 shadow-sm">
+            <pre className="text-sm leading-relaxed text-slate-100">
+              <code>{`import { fallback } from "@khalidsaidi/fallback-chain-js";
+
+const summary = await fallback([
+  { name: "vertex", run: ({ signal }) => summarizeWithVertex(url, signal) },
+  { name: "fallback", run: () => extractFirstParagraph(url) }
+], {
+  timeoutMs: 10_000,
+  onAttempt: ({ name, outcome }) => console.log(name, outcome)
+});`}</code>
+            </pre>
+          </div>
         </div>
         <RunPanel />
       </div>
