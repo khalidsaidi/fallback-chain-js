@@ -22,9 +22,11 @@ Demo app: https://fallbacklab.vercel.app
 import { fallback } from "@khalidsaidi/fallback-chain-js";
 
 const result = await fallback([
-  () => fetch("https://primary.example.com").then((r) => r.text()),
-  () => fetch("https://backup.example.com").then((r) => r.text())
+  () => fetch("https://primary.example.com").then((r) => r.text()), // this host is down → falls back
+  () => "hello from the backup provider"
 ]);
+
+console.log(result); // "hello from the backup provider"
 ```
 
 ## Why not X?
@@ -78,25 +80,50 @@ const value = await fallback([
 });
 ```
 
+An invalid `timeoutMs` (negative, `NaN`, or not a number) throws a `TypeError`
+immediately — it never silently disables the timeout.
+
+Abort-listener footgun to know about: an `AbortSignal` that is **already
+aborted never fires its `"abort"` event**, so the pattern
+`signal.addEventListener("abort", handler, { once: true })` silently does
+nothing if the signal aborted before you attached the listener. Always check
+`signal.aborted` first, then attach with `{ once: true }`. For the `signal`
+you pass into `fallback()`/`fallbackStream()`, the library already handles
+both cases for you.
+
 ## Accept Helpers
 
 Built-in validators for common patterns:
 
 ```ts
 import {
+  fallback,
   acceptOk,      // res.ok === true
   acceptStatus,  // res.status in [200, 201, ...]
   acceptTruthy,  // Boolean(value) === true
   acceptDefined  // value !== null && value !== undefined
 } from "@khalidsaidi/fallback-chain-js";
 
-// HTTP responses
-await fallback([...], { accept: acceptOk });
-await fallback([...], { accept: acceptStatus(200, 201, 204) });
+// HTTP responses: fall back past the 500
+const res = await fallback([
+  () => ({ ok: false, status: 500 }), // stand-in for fetch(primaryUrl)
+  () => ({ ok: true, status: 200 })   // stand-in for fetch(backupUrl)
+], { accept: acceptOk });
+console.log(res.status); // 200
 
-// General values
-await fallback([...], { accept: acceptTruthy });
-await fallback([...], { accept: acceptDefined });
+// ...or accept only specific status codes
+const created = await fallback([
+  () => ({ ok: false, status: 500 }),
+  () => ({ ok: true, status: 201 })
+], { accept: acceptStatus(200, 201, 204) });
+console.log(created.status); // 201
+
+// General values: skip empty/undefined results
+const text = await fallback([() => "", () => "real content"], { accept: acceptTruthy });
+console.log(text); // "real content"
+
+const cached = await fallback([() => undefined, () => 0], { accept: acceptDefined });
+console.log(cached); // 0 (defined, even though falsy)
 ```
 
 ## Real-World Examples
@@ -147,20 +174,40 @@ console.log(`${result.provider} said: ${result.text}`);
 
 ### Multi-Region Storage
 ```ts
+import { fallback, acceptDefined } from "@khalidsaidi/fallback-chain-js";
+
+// Stand-ins — swap for your real clients (AWS SDK S3, Cloudflare R2 bindings, ...)
+const s3UsEast = { getObject: async (key: string): Promise<string | undefined> => { throw new Error("region down"); } };
+const s3EuWest = { getObject: async (key: string): Promise<string | undefined> => `object:${key}` };
+const r2 = { get: async (key: string): Promise<string | undefined> => `object:${key}` };
+const key = "report.pdf";
+
 const data = await fallback([
   () => s3UsEast.getObject(key),
   () => s3EuWest.getObject(key),
   () => r2.get(key)
 ], { accept: acceptDefined });
+
+console.log(data); // "object:report.pdf" — served by eu-west after us-east failed
 ```
 
 ### Cache-Through Pattern
 ```ts
+import { fallback, acceptDefined } from "@khalidsaidi/fallback-chain-js";
+
+// Stand-ins — swap for your real clients (ioredis, pg, an internal service API, ...)
+const redis = { get: async (k: string) => null };                       // cache miss
+const postgres = { query: async (sql: string, params: unknown[]) => ({ id: params[0], name: "Ada" }) };
+const userServiceApi = { getUser: async (id: string) => ({ id, name: "Ada" }) };
+const id = "42";
+
 const user = await fallback([
   () => redis.get(`user:${id}`),
   () => postgres.query("SELECT * FROM users WHERE id = $1", [id]),
   () => userServiceApi.getUser(id)
 ], { accept: acceptDefined });
+
+console.log(user); // { id: "42", name: "Ada" } — from Postgres after the cache miss
 ```
 
 ## Stateful Chains: Cooldown + Health (`createFallbackChain`)
@@ -213,6 +260,12 @@ Semantics worth knowing:
   front, and every settled attempt applies one synchronous state update.
 - After a cooldown expires the candidate is tried in its original position
   again; if it fails once more it immediately re-enters cooldown.
+- Post-cooldown revival is **not serialized**: each `run()` snapshots the
+  ordering up front, so N concurrent calls arriving just after a cooldown
+  expires may *each* probe the revived candidate before the first probe
+  settles. If a single canary probe matters (an expensive or fragile
+  provider), serialize it yourself — e.g. wrap `chain.run()` in a small
+  in-flight dedupe/mutex while a candidate is coming off cooldown.
 
 ## Streaming Fallback (`fallbackStream`)
 
@@ -368,9 +421,13 @@ async function race<T>(
 ```
 
 ### Get Winner Metadata
-Track which candidate succeeded using the existing `onAttempt` hook:
+Track which candidate succeeded using the existing `onAttempt` hook.
+`info.attempt` is **0-based**: `0` means the first candidate won, `1` the
+second, and so on.
 
 ```ts
+import { fallback } from "@khalidsaidi/fallback-chain-js";
+
 let winner: { name?: string; attempt: number; durationMs: number } | undefined;
 
 const value = await fallback([
@@ -379,12 +436,13 @@ const value = await fallback([
 ], {
   onAttempt: (info) => {
     if (info.outcome === "success") {
+      // info.attempt: 0 = primary, 1 = backup
       winner = { name: info.name, attempt: info.attempt, durationMs: info.durationMs };
     }
   }
 });
 
-console.log(`Winner: ${winner?.name}`);
+console.log(`Winner: ${winner?.name} (attempt #${winner?.attempt})`);
 ```
 
 ## API
@@ -402,14 +460,22 @@ fallback<T>(
 
 **Options:**
 - `signal?: AbortSignal`
-- `timeoutMs?: number | (ctx) => number | undefined`
+- `timeoutMs?: number | (ctx) => number | undefined` — invalid values (negative, `NaN`, non-number) throw a `TypeError`
 - `accept?: (value, { attempt }) => boolean`
 - `retryable?: (error, { attempt }) => boolean`
 - `onAttempt?: ({ attempt, name, outcome, durationMs, value?, error? }) => void`
 
+`attempt` is **0-based** everywhere it appears — in `accept`, `retryable`,
+`onAttempt`, and the `ctx` passed to candidates and to the `timeoutMs`
+function. The first candidate runs as `attempt: 0`.
+
 **Errors:**
 - `TimeoutError` — candidate exceeded `timeoutMs`
-- `FallbackError` — all candidates failed (includes `.errors` array)
+- `FallbackError` — all candidates failed. `.errors` is the per-attempt error
+  array (in attempt order). `.named` is the same list as `[{ name?, error }]`,
+  carrying each candidate's name when it was given as `{ name, run }` — and
+  named candidates show up in the message too, e.g.
+  `All 2 fallback candidates failed (primary: Error: boom; backup: TimeoutError: Timed out after 1000ms)`
 
 ```ts
 createFallbackChain<T>(
@@ -443,6 +509,9 @@ fallbackStream<T>(
 - `retryable?: (error, { attempt }) => boolean` — applies to pre-first-chunk errors
 - `acceptFirstChunk?: (chunk, { attempt }) => boolean` — veto a candidate before committing
 - `onAttempt?` — same shape as `fallback()`; `"success"` means committed (or clean empty completion)
+
+As with `fallback()`, `attempt` is **0-based** in `retryable`,
+`acceptFirstChunk`, `onAttempt`, and the candidate `ctx`.
 
 **Semantics:** fallback happens only **before** the first chunk reaches the
 consumer; after that, errors propagate (mid-stream fallback is unsolvable UX).

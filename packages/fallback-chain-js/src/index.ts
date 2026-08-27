@@ -6,6 +6,7 @@ export {
   acceptDefined,
   TimeoutError,
   FallbackError,
+  type NamedAttemptError,
   type MaybePromise,
   type AttemptContext,
   type CandidateFn,

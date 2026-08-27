@@ -20,15 +20,56 @@ export class TimeoutError extends Error {
   }
 }
 
+/** One failed attempt, with the candidate's name when it was given as `{ name, run }`. */
+export interface NamedAttemptError {
+  name?: string;
+  error: unknown;
+}
+
 export class FallbackError extends Error {
   readonly errors: readonly unknown[];
-  constructor(message: string, errors: readonly unknown[]) {
+  /**
+   * Per-attempt view of `errors` (same order, same length) with the
+   * candidate's name attached when the candidate was named.
+   */
+  readonly named: readonly NamedAttemptError[];
+  constructor(
+    message: string,
+    errors: readonly unknown[],
+    named?: readonly NamedAttemptError[]
+  ) {
     super(message);
     this.name = "FallbackError";
     this.errors = errors;
+    this.named = named ?? errors.map((error) => ({ error }));
     // best-effort "cause" for runtimes that support it
     (this as any).cause = errors[errors.length - 1];
   }
+}
+
+/** @internal */
+export function describeError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message ? `${err.name}: ${err.message}` : err.name;
+  }
+  try {
+    return String(err);
+  } catch {
+    return "unknown error";
+  }
+}
+
+/** @internal */
+export function buildFallbackErrorMessage(
+  count: number,
+  named: readonly NamedAttemptError[]
+): string {
+  const base = `All ${count} fallback candidates failed`;
+  if (!named.some((entry) => entry.name !== undefined)) return base;
+  const parts = named.map(
+    (entry, i) => `${entry.name ?? `#${i}`}: ${describeError(entry.error)}`
+  );
+  return `${base} (${parts.join("; ")})`;
 }
 
 export interface FallbackOptions<T> {
@@ -78,13 +119,24 @@ export function normalizeCandidate<T>(c: Candidate<T>): { name?: string; run: Ca
   return { name: c.name, run: c.run };
 }
 
+/** @internal — throws TypeError instead of letting a bad value silently disable the timeout. */
+export function validateTimeoutMs(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || Number.isNaN(value) || value < 0) {
+    const got =
+      typeof value === "number" ? String(value) : `${String(value)} (${typeof value})`;
+    throw new TypeError(`timeoutMs must be a non-negative number, got ${got}`);
+  }
+  return value;
+}
+
 /** @internal */
 export function getTimeoutMs<T>(
   timeoutMs: FallbackOptions<T>["timeoutMs"],
   attempt: number
 ): number | undefined {
-  if (typeof timeoutMs === "function") return timeoutMs({ attempt });
-  return timeoutMs;
+  const resolved = typeof timeoutMs === "function" ? timeoutMs({ attempt }) : timeoutMs;
+  return validateTimeoutMs(resolved);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -116,6 +168,8 @@ export async function fallback<T>(
     throw new TypeError("fallback(candidates): candidates must be a non-empty array");
   }
 
+  if (typeof options.timeoutMs !== "function") validateTimeoutMs(options.timeoutMs);
+
   if (options.signal?.aborted) {
     throw (options.signal as any).reason ?? Object.assign(new Error("Aborted"), { name: "AbortError" });
   }
@@ -129,6 +183,11 @@ export async function fallback<T>(
     });
 
   const errors: unknown[] = [];
+  const namedErrors: NamedAttemptError[] = [];
+  const recordError = (name: string | undefined, error: unknown): void => {
+    errors.push(error);
+    namedErrors.push(name === undefined ? { error } : { name, error });
+  };
 
   for (let attempt = 0; attempt < candidates.length; attempt++) {
     const { name, run } = normalizeCandidate(candidates[attempt]!);
@@ -151,7 +210,7 @@ export async function fallback<T>(
     let timeoutId: any | undefined;
     let timeoutRejection: Promise<never> | undefined;
 
-    if (typeof perAttemptTimeout === "number" && Number.isFinite(perAttemptTimeout) && perAttemptTimeout >= 0) {
+    if (perAttemptTimeout !== undefined && Number.isFinite(perAttemptTimeout)) {
       timeoutRejection = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
           controller.abort();
@@ -173,7 +232,7 @@ export async function fallback<T>(
           name: "UnacceptableResultError",
           value
         });
-        errors.push(err);
+        recordError(name, err);
         const info = {
           attempt,
           outcome: "unacceptable" as const,
@@ -213,7 +272,7 @@ export async function fallback<T>(
 
       if (!retryable(err, { attempt })) throw err;
 
-      errors.push(err);
+      recordError(name, err);
       continue;
     } finally {
       for (const fn of cleanup) fn();
@@ -221,7 +280,8 @@ export async function fallback<T>(
   }
 
   throw new FallbackError(
-    `All ${candidates.length} fallback candidates failed`,
-    errors
+    buildFallbackErrorMessage(candidates.length, namedErrors),
+    errors,
+    namedErrors
   );
 }

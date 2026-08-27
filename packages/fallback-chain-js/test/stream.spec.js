@@ -318,4 +318,66 @@ export async function runStreamSpec(assert, sleep) {
     assert.equal(caught instanceof FallbackError, true);
     assert.equal(caught.errors[0] instanceof TimeoutError, true);
   }
+
+  // 14) invalid timeoutMs throws a clear TypeError (never a silently-disabled timeout)
+  {
+    for (const bad of [-1, Number.NaN, "1000"]) {
+      let caught;
+      try {
+        await collect(
+          fallbackStream(
+            [
+              async function* () {
+                yield "a";
+              }
+            ],
+            { timeoutMs: bad }
+          )
+        );
+      } catch (err) {
+        caught = err;
+      }
+      assert.equal(caught instanceof TypeError, true);
+      assert.equal(caught.message.includes("timeoutMs must be a non-negative number"), true);
+    }
+    // function form validated per attempt too
+    let caught;
+    try {
+      await collect(
+        fallbackStream(
+          [
+            async function* () {
+              yield "a";
+            }
+          ],
+          { timeoutMs: () => -5 }
+        )
+      );
+    } catch (err) {
+      caught = err;
+    }
+    assert.equal(caught instanceof TypeError, true);
+  }
+
+  // 15) FallbackError carries candidate names for streams (.named + message)
+  {
+    let caught;
+    try {
+      await collect(
+        fallbackStream([
+          { name: "sse-a", run: () => { throw new Error("down-a"); } },
+          { name: "sse-b", run: () => { throw new Error("down-b"); } }
+        ])
+      );
+    } catch (err) {
+      caught = err;
+    }
+    assert.equal(caught instanceof FallbackError, true);
+    assert.equal(caught.errors.length, 2);
+    assert.equal(caught.named[0].name, "sse-a");
+    assert.equal(caught.named[1].name, "sse-b");
+    assert.equal(caught.named[1].error, caught.errors[1]);
+    assert.equal(caught.message.includes("sse-a: Error: down-a"), true);
+    assert.equal(caught.message.includes("sse-b: Error: down-b"), true);
+  }
 }

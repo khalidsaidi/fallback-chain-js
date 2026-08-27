@@ -1,9 +1,12 @@
 import {
   FallbackError,
   TimeoutError,
+  buildFallbackErrorMessage,
   getTimeoutMs,
   isAbortLike,
-  type MaybePromise
+  validateTimeoutMs,
+  type MaybePromise,
+  type NamedAttemptError
 } from "./core.js";
 
 // ─────────────────────────────────────────────────────────────
@@ -123,6 +126,8 @@ export async function* fallbackStream<T>(
     );
   }
 
+  if (typeof options.timeoutMs !== "function") validateTimeoutMs(options.timeoutMs);
+
   if (options.signal?.aborted) {
     throw (
       (options.signal as any).reason ??
@@ -133,6 +138,11 @@ export async function* fallbackStream<T>(
   const retryable = options.retryable ?? ((err: unknown) => !isAbortLike(err));
   const acceptFirstChunk = options.acceptFirstChunk ?? (() => true);
   const errors: unknown[] = [];
+  const namedErrors: NamedAttemptError[] = [];
+  const recordError = (name: string | undefined, error: unknown): void => {
+    errors.push(error);
+    namedErrors.push(name === undefined ? { error } : { name, error });
+  };
 
   for (let attempt = 0; attempt < candidates.length; attempt++) {
     const { name, run } = normalizeStreamCandidate<T>(candidates[attempt]!);
@@ -190,11 +200,7 @@ export async function* fallbackStream<T>(
     let timeoutId: any | undefined;
     let timeoutRejection: Promise<never> | undefined;
 
-    if (
-      typeof perAttemptTimeout === "number" &&
-      Number.isFinite(perAttemptTimeout) &&
-      perAttemptTimeout >= 0
-    ) {
+    if (perAttemptTimeout !== undefined && Number.isFinite(perAttemptTimeout)) {
       timeoutRejection = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
           controller.abort();
@@ -255,7 +261,7 @@ export async function* fallbackStream<T>(
       discard();
       if (outcome === "aborted") throw err;
       if (!retryable(err, { attempt })) throw err;
-      errors.push(err);
+      recordError(name, err);
       continue;
     }
     clearTimeout(timeoutId);
@@ -274,7 +280,7 @@ export async function* fallbackStream<T>(
       });
       emit("unacceptable", err);
       discard();
-      errors.push(err);
+      recordError(name, err);
       continue;
     }
 
@@ -310,7 +316,8 @@ export async function* fallbackStream<T>(
   }
 
   throw new FallbackError(
-    `All ${candidates.length} fallback candidates failed`,
-    errors
+    buildFallbackErrorMessage(candidates.length, namedErrors),
+    errors,
+    namedErrors
   );
 }

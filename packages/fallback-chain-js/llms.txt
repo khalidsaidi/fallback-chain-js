@@ -5,8 +5,8 @@ Tiny fallback chains for JS/TS — try providers until one succeeds.
 ## Start here
 - README.md: overview + quickstart + recipes
 - llms-full.txt: full API + semantics + examples for LLMs/tools
-- src/: implementation (core.ts, chain.ts, stream.ts)
-- test/spec.js, test/chain.spec.js, test/stream.spec.js: behavioral specs used across Node/Bun/Workers
+- dist/index.js (ESM) / dist/index.cjs (CJS): the shipped implementation
+- dist/index.d.ts / dist/index.d.cts: TypeScript types (full API surface)
 
 ## Concepts
 - Candidates are lazy functions. We only call the next one if needed.
@@ -14,6 +14,7 @@ Tiny fallback chains for JS/TS — try providers until one succeeds.
   - a rejection/throw
   - or an “unacceptable” resolved value via options.accept(...)
 - AbortSignal stops the entire chain.
-- timeoutMs enforces per-attempt timeout via Promise.race (even if candidate ignores AbortSignal).
+- timeoutMs enforces per-attempt timeout via Promise.race (even if candidate ignores AbortSignal). Invalid timeoutMs (negative/NaN/non-number) throws TypeError instead of silently disabling the timeout.
+- FallbackError (all candidates failed) carries .errors plus .named ([{ name?, error }]) and includes candidate names in its message when candidates are named.
 - createFallbackChain(candidates, opts): stateful wrapper — failing candidates go on cooldown and are deprioritized (not skipped); success resets.
 - fallbackStream(candidates, opts): streaming fallback — falls back only BEFORE the first chunk reaches the consumer; committed after that (mid-stream fallback is unsolvable UX).

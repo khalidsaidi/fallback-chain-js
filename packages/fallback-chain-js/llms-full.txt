@@ -16,10 +16,14 @@ AttemptContext passed to each candidate:
 
 Options:
 - signal?: AbortSignal (aborts the whole chain)
-- timeoutMs?: number | (ctx) => number | undefined  (per attempt)
+- timeoutMs?: number | (ctx) => number | undefined  (per attempt; negative/NaN/non-number throws TypeError — never silently disabled)
 - accept?: (value, { attempt }) => boolean
 - retryable?: (error, { attempt }) => boolean
 - onAttempt?: ({ attempt, name, outcome, durationMs, value?, error? }) => void
+
+Notes:
+- attempt is 0-based everywhere (accept/retryable/onAttempt/candidate ctx): first candidate = attempt 0.
+- FallbackError (thrown when all candidates fail): .errors = per-attempt errors in order; .named = [{ name?, error }] aligned with .errors; message includes candidate names when candidates are named, e.g. "All 2 fallback candidates failed (primary: Error: boom; backup: TimeoutError: Timed out after 1000ms)".
 
 Outcomes:
 - "success": returned accepted value
